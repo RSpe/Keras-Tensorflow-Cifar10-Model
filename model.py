@@ -36,7 +36,7 @@ def median_filter(pixels, window_size, rgb): #get rid of noise
 
     return pixels
 
-def histogram_eq(pixels, h, w, rgb): #adaptive, increase sharpness and decrease median filter blur
+def histogram_eq(pixels, w, h, rgb): #adaptive, increase sharpness and decrease median filter blur
 
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4,4))
     #print(pixels[0][1])
@@ -56,6 +56,10 @@ def normalise(pixels, rgb):
     
     return pixels
 
+def tf(w, h, rgb):
+    
+    tf.reset_default_grapgh
+
 if __name__ == "__main__":
     extract("cifar-10-python.tar.gz")
     data = unpickle("cifar-10-batches-py/data_batch_1")
@@ -64,4 +68,5 @@ if __name__ == "__main__":
     median_filter(pixels, 3, 3)
     histogram_eq(pixels, 32, 32, 3)
     normalise(pixels, 3)
+    tf(32, 32, 3)
     #print(pixels[0][0])

@@ -5,6 +5,8 @@ import tarfile
 import numpy as np
 import scipy as sc
 import cv2
+from keras.preprocessing.image import ImageDataGenerator
+from keras.callbacks import LearningRateScheduler
 
 def extract(targz):
 
@@ -85,28 +87,28 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
     # Convolutional layer 1
     model.add(tf.keras.layers.Conv2D(32, kernel_size=(3, 3), padding="same", input_shape = x_train.shape[1:]))
     model.add(tf.keras.layers.Activation("elu"))
-    model.add(tf.keras.layers.MaxPooling2D(pool_size = (2, 2)))
     model.add(tf.keras.layers.BatchNormalization())
+    model.add(tf.keras.layers.MaxPooling2D(pool_size = (2, 2)))
     model.add(tf.keras.layers.Dropout(0.2))
 
     # Convolutional layer 2
     model.add(tf.keras.layers.Conv2D(64, kernel_size=(3, 3), padding="same", input_shape = x_train.shape[1:]))
     model.add(tf.keras.layers.Activation("elu"))
-    model.add(tf.keras.layers.MaxPooling2D(pool_size = (2, 2)))
     model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.Dropout(0.2))
+    model.add(tf.keras.layers.MaxPooling2D(pool_size = (2, 2)))
+    model.add(tf.keras.layers.Dropout(0.3))
 
     # Convolutional layer 3
-    model.add(tf.keras.layers.Conv2D(128, kernel_size=(5, 5), padding="same", input_shape = x_train.shape[1:]))
+    model.add(tf.keras.layers.Conv2D(128, kernel_size=(3, 3), padding="same", input_shape = x_train.shape[1:]))
     model.add(tf.keras.layers.Activation("elu"))
-    model.add(tf.keras.layers.MaxPooling2D(pool_size = (2, 2)))
     model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.Dropout(0.2))
+    model.add(tf.keras.layers.MaxPooling2D(pool_size = (3, 3)))
+    model.add(tf.keras.layers.Dropout(0.4))
 
     model.add(tf.keras.layers.Flatten())
 
     #Fully connected layer 1
-    model.add(tf.keras.layers.Dense(1024))
+    model.add(tf.keras.layers.Dense(128))
     model.add(tf.keras.layers.Activation("elu"))
     model.add(tf.keras.layers.Dropout(0.5))
     model.add(tf.keras.layers.BatchNormalization())
@@ -114,6 +116,8 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
     #Fully connected layer 2
     model.add(tf.keras.layers.Dense(num_classes))
     model.add(tf.keras.layers.Activation("softmax"))
+
+    model.summary()
 
     model.compile(optimizer = "rmsprop", loss = "categorical_crossentropy", metrics = ["accuracy"])
 
@@ -128,9 +132,9 @@ if __name__ == "__main__":
     data = unpickle("cifar-10-batches-py/data_batch_1")
     pixels, labels, names = fix_input(data)
     #print(pixels[0][0])
-    median_filter(pixels, 3, 3)
-    histogram_eq(pixels, 32, 32, 3)
-    normalise(pixels, 3)
+    #median_filter(pixels, 3, 3)
+    #histogram_eq(pixels, 32, 32, 3)
+    pixels = normalise(pixels, 3)
     x_train, y_train, x_test, y_test = tf_reset(pixels, labels)
     tfk_model(x_train, y_train, x_test, y_test, len(names))
     #print(pixels[0][0])

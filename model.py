@@ -102,7 +102,7 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
     model.add(tf.keras.layers.Conv2D(128, kernel_size=(3, 3), padding="same", input_shape = x_train.shape[1:]))
     model.add(tf.keras.layers.Activation("elu"))
     model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.MaxPooling2D(pool_size = (3, 3)))
+    model.add(tf.keras.layers.MaxPooling2D(pool_size = (2, 2)))
     model.add(tf.keras.layers.Dropout(0.4))
 
     model.add(tf.keras.layers.Flatten())

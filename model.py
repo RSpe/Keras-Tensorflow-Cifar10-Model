@@ -26,9 +26,8 @@ def fix_input(data_batch):
     image_width = 32
     rgb_pixels = data_batch[b"data"].reshape(len(data_batch[b"labels"]), 3, image_width, image_height)
     labels = data_batch[b"labels"]
-    names = {"airplane": 0, "automobile": 1, "bird": 2, "cat": 3, "deer": 4, "dog": 5, "frog": 6, "horse": 7, "ship": 8, "truck": 9}
-    
-    return rgb_pixels, labels, names
+
+    return rgb_pixels, labels
 
 def median_filter(pixels, window_size, rgb): #get rid of noise
 
@@ -51,25 +50,31 @@ def histogram_eq(pixels, w, h, rgb): #adaptive, increase sharpness and decrease 
     #print(pixels[0][1])
     return pixels
     
-def normalise(pixels, rgb):
+def normalise(x_train, x_test):
     
-    minv = np.min(pixels)
-    maxv = np.max(pixels)
-    pixels = (pixels - minv) / (maxv - minv)
+    x_train = pixels.astype("float32")
+    x_test = x_test.astype("float32")
+
+    mean = np.mean(x_train)
+    std = np.std(x_train)
+    x_train = (x_train - mean)/(std + 1e-7)
+    x_test = (x_test - mean)/(std + 1e-7)
     
-    return pixels
+    return x_train, x_test
 
 def tf_reset(pixels, labels):
     
     tf.compat.v1.reset_default_graph()
 
     test_set = unpickle("cifar-10-batches-py/test_batch")
-    test_pixels, test_labels, test_names = fix_input(test_set)
+    test_pixels, test_labels = fix_input(test_set)
 
     x_train = pixels
     y_train = labels
     x_test = test_pixels
     y_test = test_labels
+
+    x_train, x_test = normalise(x_train, x_test)
 
     return x_train, y_train, x_test, y_test
 
@@ -108,7 +113,7 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
     model.add(tf.keras.layers.Flatten())
 
     #Fully connected layer 1
-    model.add(tf.keras.layers.Dense(128))
+    model.add(tf.keras.layers.Dense(1024))
     model.add(tf.keras.layers.Activation("elu"))
     model.add(tf.keras.layers.Dropout(0.5))
     model.add(tf.keras.layers.BatchNormalization())
@@ -121,7 +126,7 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
 
     model.compile(optimizer = "rmsprop", loss = "categorical_crossentropy", metrics = ["accuracy"])
 
-    model.fit(x_train, y_train, epochs = 10, batch_size = 128)
+    model.fit(x_train, y_train, epochs = 125, batch_size = 128)
     score = model.evaluate(x_test, y_test, batch_size = 128)
 
     print("Tests loss: ", score[0])
@@ -130,11 +135,11 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
 if __name__ == "__main__":
     #extract("cifar-10-python.tar.gz")
     data = unpickle("cifar-10-batches-py/data_batch_1")
-    pixels, labels, names = fix_input(data)
+    pixels, labels = fix_input(data)
     #print(pixels[0][0])
     #median_filter(pixels, 3, 3)
-    #histogram_eq(pixels, 32, 32, 3)
-    pixels = normalise(pixels, 3)
+    pixels = median_filter(pixels, 3, 3)
+    pixels = histogram_eq(pixels, 32, 32, 3)
     x_train, y_train, x_test, y_test = tf_reset(pixels, labels)
-    tfk_model(x_train, y_train, x_test, y_test, len(names))
+    tfk_model(x_train, y_train, x_test, y_test, 10)
     #print(pixels[0][0])

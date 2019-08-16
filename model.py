@@ -8,6 +8,7 @@ import cv2
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import math
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
 
 def extract(targz):
 
@@ -95,7 +96,7 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
     model.add(tf.keras.layers.Activation("selu"))
     model.add(tf.keras.layers.BatchNormalization())
     model.add(tf.keras.layers.MaxPooling2D(pool_size = (2, 2)))
-    model.add(tf.keras.layers.Dropout(0.3))
+    model.add(tf.keras.layers.Dropout(0.4))
 
     # Convolutional layer 2
     model.add(tf.keras.layers.Conv2D(64, kernel_size=(3, 3), padding="same"))
@@ -109,7 +110,7 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
     model.add(tf.keras.layers.Activation("selu"))
     model.add(tf.keras.layers.BatchNormalization())
     model.add(tf.keras.layers.MaxPooling2D(pool_size = (2, 2)))
-    model.add(tf.keras.layers.Dropout(0.5))
+    model.add(tf.keras.layers.Dropout(0.4))
 
     model.add(tf.keras.layers.Flatten())
 
@@ -127,33 +128,36 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
 
     model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics = ["accuracy"])
 
-    datagen = ImageDataGenerator(rotation_range = 20, width_shift_range = 0.1, height_shift_range = 0.1, horizontal_flip = True)
+    datagen = ImageDataGenerator(rotation_range = 5, width_shift_range = 0.08, height_shift_range = 0.08, horizontal_flip = True)
     datagen.fit(x_train)
 
-    batch_size = 32
-    epochs = 100
+    batch_size = 64
+    epochs = 150
 
-    training = model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size), steps_per_epoch = 10000 / batch_size, epochs = epochs, validation_data=(x_test, y_test))
+    reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor = 0.2, patience = 5, min_lr = 0.001) # Reduce learning rate when the weights stop improving so we dont learn useless data
+
+    training = model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size), steps_per_epoch = x_train.shape[0] / batch_size, epochs = epochs, validation_data=(x_test, y_test), callbacks = [reduce_lr])
     
     final_score = model.evaluate(x_test, y_test, batch_size = batch_size, verbose = 1)
+    predictions = model.predict(x_test)
 
     print("Validation loss: ", final_score[0])
     print("Validation accuracy: ", final_score[1])
 
-    return training
+    return training, predictions
 
-def plots(model):
+def plots(model, labels, y_test, predictions):
 
-    plt.plot(training.history["loss"])
-    plt.plot(training.history["val_loss"])
+    plt.plot(model.history["loss"])
+    plt.plot(model.history["val_loss"])
     plt.title("Training loss and validation loss over time as the number of epochs increase")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend(["Training loss", "Validation loss"])
     plt.show()
 
-    plt.plot(training.history["acc"])
-    plt.plot(training.history["val_acc"])
+    plt.plot(model.history["acc"])
+    plt.plot(model.history["val_acc"])
     plt.title("Training accuracy and validation accuracy over time as the number of epochs increase")
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
@@ -169,6 +173,6 @@ if __name__ == "__main__":
     pixels = median_filter(pixels, 3, 3)
     pixels = histogram_eq(pixels, 32, 32, 3)
     x_train, y_train, x_test, y_test = tf_reset(pixels, labels)
-    model = tfk_model(x_train, y_train, x_test, y_test, 10)
-    plots(model)
+    model, predictions = tfk_model(x_train, y_train, x_test, y_test, 10)
+    plots(model, labels, y_test, predictions)
     #print(pixels[0][0])

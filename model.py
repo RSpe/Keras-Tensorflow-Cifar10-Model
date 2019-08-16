@@ -5,8 +5,8 @@ import tarfile
 import numpy as np
 import scipy as sc
 import cv2
-from keras.preprocessing.image import ImageDataGenerator
-from keras.callbacks import LearningRateScheduler
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import math
 
 def extract(targz):
 
@@ -37,6 +37,14 @@ def median_filter(pixels, window_size, rgb): #get rid of noise
             pixels[i][j] = final
 
     return pixels
+
+def step_decay(epoch):
+    initial_lrate = 0.1
+    drop = 0.5
+    epochs_drop = 10.0
+    lrate = initial_lrate * math.pow(drop,  
+            math.floor((1+epoch)/epochs_drop))
+    return lrate
 
 def histogram_eq(pixels, w, h, rgb): #adaptive, increase sharpness and decrease median filter blur
 
@@ -91,30 +99,30 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
 
     # Convolutional layer 1
     model.add(tf.keras.layers.Conv2D(32, kernel_size=(3, 3), padding="same", input_shape = x_train.shape[1:]))
-    model.add(tf.keras.layers.Activation("elu"))
-    model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.MaxPooling2D(pool_size = (2, 2)))
-    model.add(tf.keras.layers.Dropout(0.2))
-
-    # Convolutional layer 2
-    model.add(tf.keras.layers.Conv2D(64, kernel_size=(3, 3), padding="same", input_shape = x_train.shape[1:]))
-    model.add(tf.keras.layers.Activation("elu"))
+    model.add(tf.keras.layers.Activation("selu"))
     model.add(tf.keras.layers.BatchNormalization())
     model.add(tf.keras.layers.MaxPooling2D(pool_size = (2, 2)))
     model.add(tf.keras.layers.Dropout(0.3))
 
-    # Convolutional layer 3
-    model.add(tf.keras.layers.Conv2D(128, kernel_size=(3, 3), padding="same", input_shape = x_train.shape[1:]))
-    model.add(tf.keras.layers.Activation("elu"))
+    # Convolutional layer 2
+    model.add(tf.keras.layers.Conv2D(64, kernel_size=(3, 3), padding="same"))
+    model.add(tf.keras.layers.Activation("selu"))
     model.add(tf.keras.layers.BatchNormalization())
     model.add(tf.keras.layers.MaxPooling2D(pool_size = (2, 2)))
     model.add(tf.keras.layers.Dropout(0.4))
 
+    # Convolutional layer 3
+    model.add(tf.keras.layers.Conv2D(128, kernel_size=(3, 3), padding="same"))
+    model.add(tf.keras.layers.Activation("selu"))
+    model.add(tf.keras.layers.BatchNormalization())
+    model.add(tf.keras.layers.MaxPooling2D(pool_size = (2, 2)))
+    model.add(tf.keras.layers.Dropout(0.5))
+
     model.add(tf.keras.layers.Flatten())
 
     #Fully connected layer 1
-    model.add(tf.keras.layers.Dense(1024))
-    model.add(tf.keras.layers.Activation("elu"))
+    model.add(tf.keras.layers.Dense(512))
+    model.add(tf.keras.layers.Activation("selu"))
     model.add(tf.keras.layers.Dropout(0.5))
     model.add(tf.keras.layers.BatchNormalization())
 
@@ -124,10 +132,16 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
 
     model.summary()
 
-    model.compile(optimizer = "rmsprop", loss = "categorical_crossentropy", metrics = ["accuracy"])
+    model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics = ["accuracy"])
 
-    model.fit(x_train, y_train, epochs = 125, batch_size = 128)
-    score = model.evaluate(x_test, y_test, batch_size = 128)
+    datagen = ImageDataGenerator(rotation_range = 20, width_shift_range = 0.1, height_shift_range = 0.1, horizontal_flip = True)
+    datagen.fit(x_train)
+
+    batch_size = 32
+    epochs = 100
+
+    model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size), steps_per_epoch = 10000 / batch_size, epochs = epochs, validation_data=(x_test, y_test))
+    score = model.evaluate(x_test, y_test, batch_size = batch_size, verbose = 1)
 
     print("Tests loss: ", score[0])
     print("Tests accuracy: ", score[1])

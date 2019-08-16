@@ -7,6 +7,7 @@ import scipy as sc
 import cv2
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import math
+import matplotlib.pyplot as plt
 
 def extract(targz):
 
@@ -140,11 +141,20 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
     batch_size = 32
     epochs = 100
 
-    model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size), steps_per_epoch = 10000 / batch_size, epochs = epochs, validation_data=(x_test, y_test))
-    score = model.evaluate(x_test, y_test, batch_size = batch_size, verbose = 1)
+    training = model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size), steps_per_epoch = 10000 / batch_size, epochs = epochs, validation_data=(x_test, y_test))
 
-    print("Tests loss: ", score[0])
-    print("Tests accuracy: ", score[1])
+    plt.plot(training.history["loss"])
+    plt.plot(training.history["val_loss"])
+    plt.title("Training Loss and validation loss as the number of epochs increase")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend(["Training loss", "Validation loss"])
+    plt.show()
+
+    final_score = model.evaluate(x_test, y_test, batch_size = batch_size, verbose = 1)
+
+    print("Validation loss: ", final_score[0])
+    print("Validation accuracy: ", final_score[1])
 
 if __name__ == "__main__":
     #extract("cifar-10-python.tar.gz")

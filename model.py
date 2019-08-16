@@ -39,14 +39,6 @@ def median_filter(pixels, window_size, rgb): #get rid of noise
 
     return pixels
 
-def step_decay(epoch):
-    initial_lrate = 0.1
-    drop = 0.5
-    epochs_drop = 10.0
-    lrate = initial_lrate * math.pow(drop,  
-            math.floor((1+epoch)/epochs_drop))
-    return lrate
-
 def histogram_eq(pixels, w, h, rgb): #adaptive, increase sharpness and decrease median filter blur
 
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4,4))
@@ -142,19 +134,31 @@ def tfk_model(x_train, y_train, x_test, y_test, num_classes):
     epochs = 100
 
     training = model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size), steps_per_epoch = 10000 / batch_size, epochs = epochs, validation_data=(x_test, y_test))
+    
+    final_score = model.evaluate(x_test, y_test, batch_size = batch_size, verbose = 1)
+
+    print("Validation loss: ", final_score[0])
+    print("Validation accuracy: ", final_score[1])
+
+    return training
+
+def plots(model):
 
     plt.plot(training.history["loss"])
     plt.plot(training.history["val_loss"])
-    plt.title("Training Loss and validation loss as the number of epochs increase")
+    plt.title("Training loss and validation loss over time as the number of epochs increase")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend(["Training loss", "Validation loss"])
     plt.show()
 
-    final_score = model.evaluate(x_test, y_test, batch_size = batch_size, verbose = 1)
-
-    print("Validation loss: ", final_score[0])
-    print("Validation accuracy: ", final_score[1])
+    plt.plot(training.history["acc"])
+    plt.plot(training.history["val_acc"])
+    plt.title("Training accuracy and validation accuracy over time as the number of epochs increase")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.legend(["Training accuracy", "Validation accuracy"])
+    plt.show()
 
 if __name__ == "__main__":
     #extract("cifar-10-python.tar.gz")
@@ -165,5 +169,6 @@ if __name__ == "__main__":
     pixels = median_filter(pixels, 3, 3)
     pixels = histogram_eq(pixels, 32, 32, 3)
     x_train, y_train, x_test, y_test = tf_reset(pixels, labels)
-    tfk_model(x_train, y_train, x_test, y_test, 10)
+    model = tfk_model(x_train, y_train, x_test, y_test, 10)
+    plots(model)
     #print(pixels[0][0])

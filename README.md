@@ -5,3 +5,5 @@ First time using tensorflow and keras, comments in the notebook file.
 My attempt at image recognition learning using 3 convolutional layers and 2 fully connected layers with some extra preprocessing.
 
 Final score: loss: 0.6293 - acc: 0.7742 - val_loss: 0.9723 - val_acc: 0.7024
+
+The notebook code works but was to slow to run without tensorflow gpu so I didnt run after getting it working.
